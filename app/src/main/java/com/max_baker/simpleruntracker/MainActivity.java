@@ -10,13 +10,17 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.TextView;
 
 public class MainActivity extends AppCompatActivity implements LocationListener {
     final int LOCATION_REQUEST_CODE = 1;
+    final String TAG= "Main Activity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "I should at least get here");
+        setContentView(R.layout.activity_main);
         super.onCreate(savedInstanceState);
         setupSpeedFinder();
 
@@ -32,7 +36,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             //                                          int[] grantResults)
             // to handle the case where the user grants the permission. See the documentation
             // for ActivityCompat#requestPermissions for more details.
+            Log.d(TAG, "pre permission request");
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
+            Log.d(TAG, "post permission request");
             return;
         }
         lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
@@ -43,6 +49,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        Log.d(TAG, "permission request result");
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if(requestCode == LOCATION_REQUEST_CODE ){
             if(grantResults.length>0 && grantResults[0]==PackageManager.PERMISSION_GRANTED){
@@ -52,31 +59,47 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     }
     @Override
     public void onLocationChanged(Location location) {
-        TextView speedDisplay = (TextView) findViewById(R.id.speedDisplay);
+        Log.d(TAG, "Do i go first?");
+        TextView displaySpeed = (TextView) findViewById(R.id.speedDisplay);
+        TextView displayTime = (TextView) findViewById(R.id.timeDisplay);
         if (location==null){
             // if you can't get speed because reasons :)
-            speedDisplay.setText("00 km/h");
-        }
-        else{
+            Log.d(TAG, "how would this error?");
+            displaySpeed.setText("00 mph");
+            displayTime.setText("00:00");
+        } else{
             //int speed=(int) ((location.getSpeed()) is the standard which returns meters per second. In this example i converted it to kilometers per hour
-
-            int speed=(int) ((location.getSpeed()*3600)/1000);
-
-            speedDisplay.setText(speed+" km/h");
+            Log.d(TAG, "I should not be here");
+            double speed= (location.getSpeed()*3600)/1609.344;
+            double timePerMile = 60/speed;
+            int minutes = (int) timePerMile;
+            int seconds = (int) (60*(timePerMile%1));
+            if(minutes<=20) {
+                displaySpeed.setText(speed + " mph");
+                displayTime.setText(minutes + ":" + formatSeconds(seconds) + " per mile");
+            }else{
+                displaySpeed.setText("00 mph");
+                displayTime.setText("00:00");
+            }
         }
 
     }
     @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {
-
-    }
+    public void onStatusChanged(String provider, int status, Bundle extras) {}
     @Override
-    public void onProviderEnabled(String provider) {
-
-    }
+    public void onProviderEnabled(String provider) {}
     @Override
-    public void onProviderDisabled(String provider) {
+    public void onProviderDisabled(String provider) {}
 
+    private String formatSeconds(int secondsParam)
+    {
+        if(secondsParam>=59){
+            return "59";
+        }else if(secondsParam<10){
+            return "0"+String.valueOf(secondsParam);
+        }else{
+            return String.valueOf(secondsParam);
+        }
     }
 
 }
