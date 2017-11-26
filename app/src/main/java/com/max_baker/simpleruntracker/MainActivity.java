@@ -13,9 +13,28 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 
-public class MainActivity extends AppCompatActivity implements LocationListener {
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.Geofence;
+import com.google.android.gms.location.LocationAvailability;
+import com.google.android.gms.location.LocationCallback;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+
+
+public class MainActivity extends AppCompatActivity {
     final int LOCATION_REQUEST_CODE = 1;
     final String TAG= "Main Activity";
+    private FusedLocationProviderClient mFusedLocationProviderClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,8 +60,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             Log.d(TAG, "post permission request");
             return;
         }
-        lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, this);
-        this.onLocationChanged(null);
+        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        LocationRequest locationRequest = new LocationRequest();
+        locationRequest.create();
+        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+        locationRequest.setInterval(5000);
+        mFusedLocationProviderClient.requestLocationUpdates(locationRequest,new MyLocationListener(), null);
         setContentView(R.layout.activity_main);
 
     }
@@ -57,39 +80,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             }
         }
     }
-    @Override
-    public void onLocationChanged(Location location) {
-        Log.d(TAG, "Do i go first?");
-        TextView displaySpeed = (TextView) findViewById(R.id.speedDisplay);
-        TextView displayTime = (TextView) findViewById(R.id.timeDisplay);
-        if (location==null){
-            // if you can't get speed because reasons :)
-            Log.d(TAG, "how would this error?");
-            displaySpeed.setText("00 mph");
-            displayTime.setText("00:00");
-        } else{
-            //int speed=(int) ((location.getSpeed()) is the standard which returns meters per second. In this example i converted it to kilometers per hour
-            Log.d(TAG, "I should not be here");
-            double speed= (location.getSpeed()*3600)/1609.344;
-            double timePerMile = 60/speed;
-            int minutes = (int) timePerMile;
-            int seconds = (int) (60*(timePerMile%1));
-            if(minutes<=20) {
-                displaySpeed.setText(speed + " mph");
-                displayTime.setText(minutes + ":" + formatSeconds(seconds) + " per mile");
-            }else{
-                displaySpeed.setText("00 mph");
-                displayTime.setText("00:00");
-            }
-        }
-
-    }
-    @Override
-    public void onStatusChanged(String provider, int status, Bundle extras) {}
-    @Override
-    public void onProviderEnabled(String provider) {}
-    @Override
-    public void onProviderDisabled(String provider) {}
 
     private String formatSeconds(int secondsParam)
     {
@@ -102,4 +92,47 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
+    private class MyLocationListener extends LocationCallback{
+        //public MyLocationListener(){}
+
+
+        @Override
+        public void onLocationResult(LocationResult locationResult) {
+            super.onLocationResult(locationResult);
+            Log.d(TAG, "Do i go first?");
+            Location location = locationResult.getLastLocation();
+            TextView displaySpeed = (TextView) findViewById(R.id.speedDisplay);
+            TextView displayTime = (TextView) findViewById(R.id.timeDisplay);
+            if (location==null){
+                // if you can't get speed because reasons :)
+                Log.d(TAG, "how would this error?");
+                displaySpeed.setText("00 mph");
+                displayTime.setText("00:00");
+            } else{
+                //int speed=(int) ((location.getSpeed()) is the standard which returns meters per second. In this example i converted it to kilometers per hour
+                Log.d(TAG, "I should not be here");
+                double speed= (location.getSpeed()*3600)/1609.344;
+                Log.d(TAG, String.valueOf(speed));
+                double timePerMile = 60/speed;
+                int minutes = (int) timePerMile;
+                int seconds = (int) (60*(timePerMile%1));
+                if(minutes<=20) {
+                    Log.d(TAG, "updated");
+                    displaySpeed.setText(speed + " mph");
+                    displayTime.setText(minutes + ":" + formatSeconds(seconds) + " per mile");
+                }else{
+                    displaySpeed.setText("00 mph");
+                    displayTime.setText("00:00");
+                }
+            }
+        }
+
+        @Override
+        public void onLocationAvailability(LocationAvailability locationAvailability) {
+            super.onLocationAvailability(locationAvailability);
+        }
+    }
+
 }
+
+
