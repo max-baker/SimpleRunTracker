@@ -1,23 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.max_baker.simpleruntracker.MainActivity"
-    android:columnCount="1">
+    android:columnCount="1"
+    android:orientation="vertical"
+    android:gravity="center">
 
     <TextView
         android:id="@+id/speedDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Hello World!"
-        android:textSize="20dp"/>
+        android:textSize="30dp"
+        android:padding="30dp"/>
 
     <TextView
         android:id="@+id/timeDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Hello World!"
-        android:textSize="20dp"/>
+        android:textSize="30dp"
+        android:padding="30dp"/>
 
-</GridLayout>
+    <Button
+        android:id="@+id/startButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="startClick"
+        android:text="Start" />
+    <Button
+        android:id="@+id/resetButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="finishRun"
+        android:text="Finish" />
+    <TextView
+        android:id="@+id/timeTotalDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hello World!"
+        android:textSize="30dp"
+        android:padding="30dp"/>
+    <TextView
+        android:id="@+id/distanceTotalDisplay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hello World!"
+        android:textSize="30dp"
+        android:padding="30dp"/>
+
+</LinearLayout>
