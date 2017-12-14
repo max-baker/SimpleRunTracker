@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<ScrollView android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -12,7 +15,7 @@
         android:id="@+id/speedDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="0 mph"
         android:textSize="30dp"
         android:padding="30dp"/>
 
@@ -20,7 +23,7 @@
         android:id="@+id/timeDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="00:00"
         android:textSize="30dp"
         android:padding="30dp"/>
 
@@ -40,15 +43,16 @@
         android:id="@+id/timeTotalDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="00:00"
         android:textSize="30dp"
         android:padding="30dp"/>
     <TextView
         android:id="@+id/distanceTotalDisplay"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
+        android:text="0.0 Miles"
         android:textSize="30dp"
         android:padding="30dp"/>
 
 </LinearLayout>
+</ScrollView>

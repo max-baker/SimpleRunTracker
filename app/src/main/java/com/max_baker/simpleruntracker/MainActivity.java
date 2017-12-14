@@ -1,52 +1,49 @@
 package com.max_baker.simpleruntracker;
+/**
+ * Written By: Max Baker
+ * Last Modified; 12/7/17
+ * Updates running metrics, pressing finish will save the run to a database
+ */
 
 import android.Manifest;
-import android.content.Context;
+import android.app.Activity;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.os.Looper;
-import android.os.SystemClock;
-import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
+import android.widget.Toast;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.LocationAvailability;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.maps.CameraUpdate;
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-
 import java.math.BigDecimal;
-import java.sql.Time;
+import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.RunnableFuture;
-
 
 public class MainActivity extends AppCompatActivity {
     final int LOCATION_REQUEST_CODE = 1;
-    //timer task
+    final int ADD_RUN_CODE = 808;
+    final static int SMOOTHING_RATE=3;
+    int smoothingIndex=0;
+    float aggrSpeed=0;
+    ArrayList<Double> latitudes = new ArrayList<Double>();
+    ArrayList<Double> longitudes = new ArrayList<Double>();
+    ArrayList<Double> latitudesStore = new ArrayList<Double>();
+    ArrayList<Double> longitudesStore = new ArrayList<Double>();
     final String TAG= "Main Activity";
-    private FusedLocationProviderClient mFusedLocationProviderClient;
     int seconds;
     int minutes;
     float speed;
@@ -101,7 +98,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                     }
                 }, 1000, 1000);
-                startButton.setText("Stop");
+                startButton.setText(R.string.stop);
             }
         }else{
             seconds=0;
@@ -121,9 +118,6 @@ public class MainActivity extends AppCompatActivity {
     public void startClick(View view){
         Button startButton = (Button) findViewById(R.id.startButton);
         if(!running) {
-            totalDistance = 0;
-            seconds = -1;
-            minutes = 0;
             timer = new Timer();
             timer.schedule(new TimerTask() {
                 @Override
@@ -142,34 +136,106 @@ public class MainActivity extends AppCompatActivity {
                     });
                 }
             }, 1000, 1000);
-            startButton.setText("Stop");
+            startButton.setText(R.string.stop);
             running=true;
         }else{
-            startButton.setText("Start");
+            latitudesStore = latitudes;
+            longitudesStore= longitudes;
+            startButton.setText(R.string.start);
             timer.cancel();
             timer.purge();
             running=false;
         }
     }
 
+
+    public void finishRun(View view){
+        running=false;
+        Intent intent = new Intent(this,RecordsActivity.class);
+        intent.putExtra("minutes", minutes);
+        intent.putExtra("seconds", seconds);
+        float milesRun = (float)(totalDistance/METERS_TO_MILES);
+        float milesRunRounded= round(milesRun,2);
+        intent.putExtra("distance", milesRunRounded);
+        intent.putExtra("request",ADD_RUN_CODE);
+        latitudesStore = latitudes;
+        longitudesStore=longitudes;
+        latitudes.clear();
+        longitudes.clear();
+        startActivityForResult(intent,ADD_RUN_CODE);
+
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater menuInflater = getMenuInflater();
+        menuInflater.inflate(R.menu.main_menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int menuId = item.getItemId();
+        switch(menuId){
+            case R.id.goToRecords:
+                Intent intent = new Intent(MainActivity.this, RecordsActivity.class);
+                startActivity(intent);
+                return true;
+            case R.id.goToMap:
+                Log.d(TAG, "goToMap case");
+
+                //TODO:Carter fix this
+                Intent intent2 = new Intent(MainActivity.this, MapsActivity.class);
+                if(running) {
+                    Log.d(TAG, "Running case");
+
+                    intent2.putExtra("latitudes",  latitudes);
+                    intent2.putExtra("longitudes", longitudes);
+                }else{
+                    Log.d(TAG, "Not running case");
+
+                    intent2.putExtra("latitudes", latitudesStore);
+                    intent2.putExtra("longitudes", longitudesStore);
+                }
+                Log.d(TAG, "Start Activity Intent 2");
+
+                startActivity(intent2);
+                return true;
+            default:
+                Log.d(TAG, "Default case");
+
+                return super.onOptionsItemSelected(item);
+        }
+
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == ADD_RUN_CODE && resultCode == Activity.RESULT_OK){
+            Button startButton = (Button) findViewById(R.id.startButton);
+            TextView totalTime = (TextView) findViewById(R.id.timeTotalDisplay);
+            TextView distanceDisplay = (TextView) findViewById(R.id.distanceTotalDisplay);
+            running=false;
+            totalDistance = 0;
+            seconds = 0;
+            minutes = 0;
+            startButton.setText(R.string.start);
+            timer.cancel();
+            timer.purge();
+            totalTime.setText(formatSeconds(minutes) + ":" + formatSeconds(seconds));
+            float milesRun = (float)(totalDistance/METERS_TO_MILES);
+            String distanceText=round(milesRun,2)  + " miles";
+            distanceDisplay.setText(distanceText);
+            Toast.makeText(this,"Run Archived",Toast.LENGTH_SHORT).show();
+        }
+    }
+
     public void setupSpeedFinder(){
-        LocationManager lm = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            Log.d(TAG, "pre permission request");
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_REQUEST_CODE);
-            Log.d(TAG, "post permission request");
             return;
         }
-        mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        FusedLocationProviderClient mFusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         LocationRequest locationRequest = new LocationRequest();
-        locationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(1000);
         mFusedLocationProviderClient.requestLocationUpdates(locationRequest,new MyLocationListener(),null);
@@ -200,9 +266,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class MyLocationListener extends LocationCallback{
-        //public MyLocationListener(){}
-
-
         @Override
         public void onLocationResult(LocationResult locationResult) {
             super.onLocationResult(locationResult);
@@ -214,30 +277,40 @@ public class MainActivity extends AppCompatActivity {
             TextView displayTime = (TextView) findViewById(R.id.timeDisplay);
             if (location==null){
                 // if you can't get speed because reasons :)
-                Log.d(TAG, "how would this error?");
-                displaySpeed.setText("00 mph");
-                displayTime.setText("00:00");
+                displaySpeed.setText(R.string.noSpeed);
+                displayTime.setText(R.string.noSpeedTime);
             } else{
-                //int speed=(int) ((location.getSpeed()) is the standard which returns meters per second. In this example i converted it to kilometers per hour
                 speed= (float) ((location.getSpeed()*SECONDS_TO_HOURS)/METERS_TO_MILES);
-                double timePerMile = 60/speed;
-                int minutes = (int) timePerMile;
-                int seconds = (int) (60*(timePerMile%1));
                 if(minutes<=20) {
-                    Log.d(TAG, "updated");
-                    displaySpeed.setText(round(speed,2) + " mph");
-                    displayTime.setText(minutes + ":" + formatSeconds(seconds) + " per mile");
-                    float distanceTraveled = location.distanceTo(lastLocation);
-                    totalDistance+=distanceTraveled;
-                    lastLocation=location;
+                    if(smoothingIndex>=SMOOTHING_RATE) {
+                        smoothingIndex=0;
+                        float avgSpeed = aggrSpeed/SMOOTHING_RATE;
+                        double timePerMile = 60/avgSpeed;
+                        int minutes = (int) timePerMile;
+                        int seconds = (int) (60*(timePerMile%1));
+                        String speedText= round(speed, 2) + " mph";
+                        displaySpeed.setText(speedText);
+                        displayTime.setText(formatSeconds(minutes) + ":" + formatSeconds(seconds) + " per mile");
+                        aggrSpeed=0;
+                    }else{
+                        smoothingIndex++;
+                        aggrSpeed+=speed;
+                    }
+                    if(running){
+                        float distanceTraveled = location.distanceTo(lastLocation);
+                        totalDistance+=distanceTraveled;
+                        latitudes.add(location.getLatitude());
+                        longitudes.add(location.getLongitude());
+                    }
                 }else{
-                    displaySpeed.setText("00 mph");
-                    displayTime.setText("00:00");
+                    displaySpeed.setText(R.string.noSpeed);
+                    displayTime.setText(R.string.noSpeedTime);
                 }
+                lastLocation=location;
                 TextView distanceDisplay = (TextView) findViewById(R.id.distanceTotalDisplay);
-                TextView timeDisplay = (TextView) findViewById(R.id.timeTotalDisplay);
                 float milesRun = (float)(totalDistance/METERS_TO_MILES);
-                distanceDisplay.setText(round(milesRun,2)  + " miles");
+                String distanceText = round(milesRun,2)  + " miles";
+                distanceDisplay.setText(distanceText);
             }
 
         }

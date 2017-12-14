@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">SimpleRunTracker</string>
     <string name="y">yeah</string>
+    <string name="stop">Stop</string>
+    <string name="start">Start</string>
+    <string name="noSpeed">00 mph</string>
+    <string name="noSpeedTime">00:00</string>
+    <string name="title_activity_maps">Map</string>
 </resources>
